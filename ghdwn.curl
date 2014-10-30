@@ -1,0 +1,7 @@
+#!/usr/bin/env curl -K
+url = "https://api.github.com/search/repositories"
+-G
+data-urlencode = "q=language:python"
+data-urlencode = "sort=stars"
+data-urlencode = "per_page=100"
+header = "Accept: application/vnd.github.v3+json"
