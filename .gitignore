@@ -3,3 +3,5 @@ repo
 tmp
 urls
 index.txt
+__pycache__
+ghtoken
