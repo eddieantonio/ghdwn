@@ -41,9 +41,88 @@ This file is meant to replace the following two file:
 import json
 import math
 import urllib2
+import re
+import itertools
 
 GITHUB_SEARCH_URL = "https://api.github.com/search/repositories"
 GITHUB_BASE = "https://github.com"
+
+def parse_link_header(header):
+    """
+    Parses the content of a Link: header.
+
+    >>> header = '<https://example.com?page=6&q=language%3Apython>; rel="next", <https://example.com?page=36&q=language%3Apython>; rel="prev"'
+    >>> links = parse_link_header(header)
+    >>> links['next']
+    'https://example.com?page=6&q=language%3Apython'
+    >>> links['prev']
+    'https://example.com?page=36&q=language%3Apython'
+    """
+    raw_links = re.split(r',\s+', header)
+
+    links = {}
+    for text in raw_links:
+        match = re.search(r'^<([^>]+)>;.*?rel="([^"]+)"', text)
+        if not match:
+            raise ValueError('Could not find links in header: %r' % (header,))
+        url, rel = match.groups()
+        links[rel] = url
+
+    return links
+
+
+class GitHubSearchRequester(object):
+    """
+    Requests stuff from GitHub. You can tell it downloads GitHub stuff because
+    of the way it is. Wow.
+    """
+    def __init__(self, language):
+        self.requests_left = 1
+        self.next_url = create_search_url(language, quantity=100)
+        self.buffer = None
+
+    def __iter__(self):
+        return self
+
+    def request_next_page(self):
+        # Do that nasty request
+        response = urllib2.urlopen(create_github_request(self.next_url))
+
+        payload = json.load(response)
+        link_header = response.info().getheader('Link')
+
+        # Set the new buffer's contents.
+        self.buffer = [tuple(repo['full_name'].split('/')) for repo in payload['items']]
+
+        self.next_url = parse_link_header(link_header)['next']
+
+    def next(self):
+        if self.buffer:
+            return self.buffer.pop(0)
+        if not self.requests_left:
+            raise StopIteration()
+
+        try:
+            self.request_next_page()
+        # Some HTTP error occured. Return no results.
+        except urllib2.HTTPError:
+            self.buffer = []
+
+        if self.buffer:
+            return self.buffer.pop(0)
+        else:
+            raise StopIteration()
+
+
+def get_github_list(language, quantity=1024):
+    """
+    Returns a great big list of suitable owner/repository tuples for the given
+    langauge.
+    """
+    # GitHubSearchRequester does the bulk of the work. Using islice to emit at most
+    # `quantity` results.
+    urls = itertools.islice(GitHubSearchRequester(language), quantity)
+    return list(urls)
 
 def create_search_url(language, page=1, quantity=100):
     """
@@ -76,9 +155,16 @@ def create_archive_url(owner, repository, release="master"):
             base=GITHUB_BASE, owner=owner, repository=repository,
             release=release)
 
+# TODO: Create context manager that does RESTful stuff!
+
 def rate_limit_permits(response):
     "Check if more requests can be made on the GitHub API."
     return response.info()['X-RateLimit-Remaining'] > 0
+
+def create_github_request(url):
+    request = urllib2.Request(url)
+    request.add_header('Accept', 'application/vnd.github.v3+json')
+    return request
 
 def create_list_request(language, page_num):
     url = create_search_url(language, page_num)
@@ -86,12 +172,7 @@ def create_list_request(language, page_num):
     request.add_header('Accept', 'application/vnd.github.v3+json')
     return request
 
-def get_github_list(language, quantity=1024):
-    """
-    Returns a great big list of suitable owner/repository tuples for the given
-    langauge.
-    """
-
+def legacy_github_list_thing():
     repos = []
     total_requests = int(math.ceil(quantity / 100.0))
 
@@ -105,7 +186,7 @@ def get_github_list(language, quantity=1024):
         if len(repos) >= int(payload['total_count']):
             # Done downloading..
             break
-            
+
 
     return repos
 
@@ -116,5 +197,5 @@ if __name__ == '__main__':
     # files from each index.
 
     "python -m py_compile {0}".format(script)
-    
+
     pass
