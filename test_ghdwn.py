@@ -1,4 +1,5 @@
 #!/usr/bin/env py.test
+# coding: utf-8
 
 """
 Tests GitHub downloading thingymobber.
@@ -8,51 +9,89 @@ import httpretty
 from itertools import count
 
 import ghdwn
+import mock_data
 
 @httpretty.activate
 def test_download_java():
 
     # Sample request bodies:
-    java_bodies = [
-        '{"total_count": 2, "items":[{"full_name": "herp/derp"}]}',
-        '{"total_count": 2, "items":[{"full_name": "foo/bar"}]}'
-    ]
-    requests_remaining, body = count(59, -1), iter(java_bodies)
-    
+    requests_remaining, body = count(9, -1), iter(mock_data.search_bodies)
+    page_no = count(2)
+
     def request_callback(request, uri, headers):
         headers['Content-Type'] = 'application/json'
         headers['X-RateLimit-Remaining'] = next(requests_remaining)
+        headers['Link'] = (
+                '<https://api.github.com/search/repositories?'
+                'q=language%3Apython&sort=stars&page={0}>; rel="next", '
+                '<https://api.github.com/search/repositories?'
+                'q=language%3Ajava&sort=stars&page=34>; rel="last"').format(
+                        next(page_no))
+
         return 200, headers, next(body)
 
     httpretty.register_uri(httpretty.GET,
         "https://api.github.com/search/repositories",
         body=request_callback)
-    index = ghdwn.get_github_list('java')
+    index = ghdwn.get_github_list('python')
 
-    assert index[0] == ('herp', 'derp')
-    assert len(index) == 2
+    assert len(index) == 8
+    assert index == [
+            ('jakubroztocil', 'httpie'),
+            ('django', 'django'),
+            ('kennethreitz', 'requests'),
+            ('mitsuhiko', 'flask'),
+            ('ansible', 'ansible'),
+            ('tornadoweb', 'tornado'),
+            ('numbbbbb', 'the-swift-programming-language-in-chinese'),
+            ('reddit', 'reddit')
+    ]
+
 
 @httpretty.activate
 def test_rate_limiting():
-    httpretty.register_uri(httpretty.GET, "https://api.github.com/search/repositories",
-            body='[{"title": "Test Deal"}]',
+    # Come up with zero results.
+    httpretty.register_uri(httpretty.GET,
+            "https://api.github.com/search/repositories",
+            status=403,
             content_type="application/json",
             adding_headers={
                 'X-RateLimit-Remaining': '0'
             })
-    assert True
+
+    # Should have gotten zero results...
+    index = ghdwn.get_github_list('python')
+    assert index == []
 
 
-"""
-    # For first request:
-    httpretty.Response(
-        body='[{"title": "Test Deal"}]',
-        content_type="application/json",
-        adding_headers={'X-RateLimit-Remaining': '59'})
-    # For second request:
-    httpretty.Response(
-        body='[{"title": "Test Deal"}]',
-        content_type="application/json",
-        adding_headers={})
-])
-"""
+def test_download_corpus(monkeypatch, tmpdir):
+    # Pretend we're in a temporary directory...
+    monkeypatch.chdir(tmpdir)
+
+    # Can't use @httpretty.activate because of monkeypatch and tmpdir
+    httpretty.enable()
+    body = iter(mock_data.abbrev_search_bodies)
+
+    def request_callback(request, uri, headers):
+        headers['Content-Type'] = 'application/json'
+        headers['X-RateLimit-Remaining'] = 10
+        headers['Link'] = (
+                '<https://api.github.com/search/repositories?'
+                'q=language%3Apython&sort=stars&page=1>; rel="last"')
+        return 200, headers, next(body)
+
+    httpretty.register_uri(httpretty.GET,
+        "https://api.github.com/search/repositories",
+        body=request_callback)
+    index = ghdwn.get_github_list('python')
+
+    # Download that entire corpus.
+    ghdwn.download_corpus('python')
+
+    # Assert that files exist...
+    assert tmpdir.path.exists('eddieantonio/dev')
+    assert tmpdir.path.exists('eddieantonio/dev/dev.py')
+    assert not tmpdir.path.exists('eddieantonio/dev/README.rst')
+    # TODO: More asserts for this...
+    assert tmpdir.path.exists('django/django')
+
