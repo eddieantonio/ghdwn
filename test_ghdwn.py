@@ -48,6 +48,7 @@ def test_download_java():
     ]
 
 
+
 @httpretty.activate
 def test_rate_limiting():
     # Come up with zero results.
@@ -89,9 +90,25 @@ def test_download_corpus(monkeypatch, tmpdir):
     ghdwn.download_corpus('python')
 
     # Assert that files exist...
-    assert tmpdir.path.exists('eddieantonio/dev')
-    assert tmpdir.path.exists('eddieantonio/dev/dev.py')
-    assert not tmpdir.path.exists('eddieantonio/dev/README.rst')
+    assert tmpdir.join('eddieantonio','dev').check(dir=True)
+    assert tmpdir.join('eddieantonio', 'dev', 'dev.py').check(file=True)
+    assert not tmpdir.join('eddieantonio', 'dev', 'README.rst').check()
     # TODO: More asserts for this...
-    assert tmpdir.path.exists('django/django')
+    assert tmpdir.join('django', 'django').check(dir=True)
 
+    # Again, this function is not wrapped in @httpretty.activate
+    httpretty.disable()  
+    httpretty.reset() 
+
+def test_syntax_ok(monkeypatch, tmpdir):
+    monkeypatch.chdir(tmpdir)
+
+    valid_python = tmpdir.join('alright.py')
+    valid_python.write('print "Hello, World!",')
+
+    assert ghdwn.syntax_ok(str(valid_python))
+
+    invalid_python = tmpdir.join('no_good.py')
+    invalid_python.write('import java.util.*;')
+
+    assert not ghdwn.syntax_ok(str(invalid_python))

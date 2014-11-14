@@ -1,41 +1,8 @@
 #!/usr/bin/env python
 
 """
-This file is meant to replace the following two file:
-
-
-    #### ghdwn.curl ####
-    url = "https://api.github.com/search/repositories"
-    -G
-    data-urlencode = "q=language:python"
-    data-urlencode = "sort=stars"
-    data-urlencode = "per_page=100"
-    header = "Accept: application/vnd.github.v3+json"
-
-
-
-    #### download.sh ####
-    download_index () {
-            i=1
-            while [ $i -le 10 ] ;
-            do
-                    curl -K ghdwn.curl --data-urlencode "page=$i" | \
-                            tee json/$i.json | \
-                            jq '.items | .[] | .clone_url' > urls/$i
-
-                    i=$((i+1))
-            done;
-
-            cat urls/* > repos/index.txt
-    }
-
-
-    cd repos
-    for url in `cat index.txt`
-    do
-            git clone $url
-    done
-
+Downloads a craptonne of code from GitHub. Uses only the Python standard
+library, because... uh...
 """
 
 import json
@@ -43,33 +10,10 @@ import math
 import urllib2
 import re
 import itertools
+import py_compile
 
 GITHUB_SEARCH_URL = "https://api.github.com/search/repositories"
 GITHUB_BASE = "https://github.com"
-
-def parse_link_header(header):
-    """
-    Parses the content of a Link: header.
-
-    >>> header = '<https://example.com?page=6&q=language%3Apython>; rel="next", <https://example.com?page=36&q=language%3Apython>; rel="prev"'
-    >>> links = parse_link_header(header)
-    >>> links['next']
-    'https://example.com?page=6&q=language%3Apython'
-    >>> links['prev']
-    'https://example.com?page=36&q=language%3Apython'
-    """
-    raw_links = re.split(r',\s+', header)
-
-    links = {}
-    for text in raw_links:
-        match = re.search(r'^<([^>]+)>;.*?rel="([^"]+)"', text)
-        if not match:
-            raise ValueError('Could not find links in header: %r' % (header,))
-        url, rel = match.groups()
-        links[rel] = url
-
-    return links
-
 
 class GitHubSearchRequester(object):
     """
@@ -89,7 +33,7 @@ class GitHubSearchRequester(object):
         response = urllib2.urlopen(create_github_request(self.next_url))
 
         payload = json.load(response)
-        link_header = response.info().getheader('Link')
+        link_header = response.info()['Link']
 
         # Set the new buffer's contents.
         self.buffer = [tuple(repo['full_name'].split('/')) for repo in payload['items']]
@@ -124,6 +68,29 @@ def get_github_list(language, quantity=1024):
     urls = itertools.islice(GitHubSearchRequester(language), quantity)
     return list(urls)
 
+def parse_link_header(header):
+    """
+    Parses the content of a Link: header.
+
+    >>> header = '<https://example.com?page=6&q=language%3Apython>; rel="next", <https://example.com?page=36&q=language%3Apython>; rel="prev"'
+    >>> links = parse_link_header(header)
+    >>> links['next']
+    'https://example.com?page=6&q=language%3Apython'
+    >>> links['prev']
+    'https://example.com?page=36&q=language%3Apython'
+    """
+    raw_links = re.split(r',\s+', header)
+
+    links = {}
+    for text in raw_links:
+        match = re.search(r'^<([^>]+)>;.*?rel="([^"]+)"', text)
+        if not match:
+            raise ValueError('Could not find links in header: %r' % (header,))
+        url, rel = match.groups()
+        links[rel] = url
+
+    return links
+
 def create_search_url(language, page=1, quantity=100):
     """
     Creates a URL for search repositories based on the langauge.
@@ -155,8 +122,6 @@ def create_archive_url(owner, repository, release="master"):
             base=GITHUB_BASE, owner=owner, repository=repository,
             release=release)
 
-# TODO: Create context manager that does RESTful stuff!
-
 def rate_limit_permits(response):
     "Check if more requests can be made on the GitHub API."
     return response.info()['X-RateLimit-Remaining'] > 0
@@ -166,36 +131,31 @@ def create_github_request(url):
     request.add_header('Accept', 'application/vnd.github.v3+json')
     return request
 
-def create_list_request(language, page_num):
-    url = create_search_url(language, page_num)
-    request = urllib2.Request(url)
-    request.add_header('Accept', 'application/vnd.github.v3+json')
-    return request
+def syntax_ok(filepath):
+    """
+    Given a filename, returns True if the file compiles.
+    """
+    try:
+        py_compile.compile(filepath, doraise=True)
+        return True
+    except py_compile.PyCompileError:
+        return False
 
-def legacy_github_list_thing():
-    repos = []
-    total_requests = int(math.ceil(quantity / 100.0))
+def post_process(repo_path, langauge):
+    if language != 'python':
+        return
 
-    for page_num in xrange(1, total_requests + 1):
-        response = urllib2.urlopen(create_list_request(language, page_num))
-        payload = json.load(response)
+    # For python files, will delete everything EXCEPT
+    # the python files that compile.
 
-        repos.extend([tuple(repo['full_name'].split('/')) for repo in payload['items']])
-
-        # Downloaded the entire list...
-        if len(repos) >= int(payload['total_count']):
-            # Done downloading..
-            break
+    #syntax_okay = os.system("python -m py_compile {0}".format(script))
 
 
-    return repos
-
+def download_corpus(language, quantity=1024):
+    """
+    Downloads a corpus, wooo.
+    """
+    pass
 
 if __name__ == '__main__':
-    index = get_github_list('python')
-    # Apparently I used to clone them, but now I will carefully select Python
-    # files from each index.
-
-    "python -m py_compile {0}".format(script)
-
-    pass
+    raise NotImplemented()
