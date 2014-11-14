@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+import os
+import cStringIO
+
 # Results parsed from this unwieldy curl invocation:
 #
 #   curl -i -G https://api.github.com/search/repositories"?page={1,2,3,4,5}" \
@@ -741,4 +744,78 @@ search_bodies = [
 }"""
 ]
 
-abbrev_search_bodies = []
+# Smaller, and FAKE search bodies.
+# Accompanied by some zip files...
+abbrev_search_bodies = [
+    r"""{
+  "total_count": 2,
+  "incomplete_results": false,
+  "items": [
+    {
+      "id": 20429943,
+      "name": "dev",
+      "full_name": "eddieantonio/dev",
+      "owner": {
+        "login": "eddieantonio",
+        "type": "User"
+      },
+      "private": false,
+      "html_url": "https://github.com/eddieantonio/dev",
+      "description": "Dev",
+      "fork": false,
+      "url": "https://api.github.com/repos/eddieantonio/dev",
+      "size": 29375,
+      "language": "Python",
+      "has_issues": true,
+      "has_downloads": true,
+      "has_wiki": true,
+      "has_pages": true,
+      "forks_count": 2265,
+      "mirror_url": null,
+      "open_issues_count": 12,
+      "forks": 2265,
+      "open_issues": 0,
+      "watchers": 7641,
+      "default_branch": "master",
+      "score": 1.0
+    },
+    {
+      "id": 20429944,
+      "name": "syntax-errors-up-the-ying-yang",
+      "full_name": "eddieantonio/syntax-errors-up-the-ying-yang",
+      "owner": {
+        "login": "eddieantonio",
+        "type": "User"
+      },
+      "private": false,
+      "html_url": "https://github.com/eddieantonio/syntax-errors-up-the-ying-yang",
+      "description": "Dev",
+      "fork": false,
+      "url": "https://api.github.com/repos/eddieantonio/syntax-errors-up-the-ying-yang",
+      "size": 29375,
+      "language": "Python",
+      "has_issues": true,
+      "has_downloads": true,
+      "has_wiki": true,
+      "has_pages": true,
+      "forks_count": 2265,
+      "mirror_url": null,
+      "open_issues_count": 12,
+      "forks": 2265,
+      "open_issues": 0,
+      "watchers": 7641,
+      "default_branch": "master",
+      "score": 1.0
+    }
+  ]
+}"""
+]
+
+# Load the FULL contents of both the real zip file and the broken zip file. 
+# Expose them as file-like objects.
+__dir = os.path.dirname(os.path.realpath(__file__))
+with open(os.path.join(__dir, 'dev-master.zip'), 'rb') as f:
+    dev_zip = cStringIO.StringIO(f.read())
+with open(os.path.join(__dir, 'syntax-errors-up-the-ying-yang-master.zip'), 'rb') as f:
+    broken_zip = cStringIO.StringIO(f.read())
+
