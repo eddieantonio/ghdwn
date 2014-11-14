@@ -11,6 +11,7 @@ from itertools import count
 import ghdwn
 import mock_data
 
+
 @httpretty.activate
 def test_download_java():
 
@@ -47,8 +48,6 @@ def test_download_java():
             ('reddit', 'reddit')
     ]
 
-
-
 @httpretty.activate
 def test_rate_limiting():
     # Come up with zero results.
@@ -63,7 +62,6 @@ def test_rate_limiting():
     # Should have gotten zero results...
     index = ghdwn.get_github_list('python')
     assert index == []
-
 
 def test_download_corpus(monkeypatch, tmpdir):
     # Pretend we're in a temporary directory...
@@ -84,21 +82,32 @@ def test_download_corpus(monkeypatch, tmpdir):
     httpretty.register_uri(httpretty.GET,
         "https://api.github.com/search/repositories",
         body=request_callback)
-    index = ghdwn.get_github_list('python')
 
     # Download that entire corpus.
-    ghdwn.download_corpus('python')
+    ghdwn.download_corpus('python', 'corpus')
 
-    # Assert that files exist...
-    assert tmpdir.join('eddieantonio','dev').check(dir=True)
-    assert tmpdir.join('eddieantonio', 'dev', 'dev.py').check(file=True)
-    assert not tmpdir.join('eddieantonio', 'dev', 'README.rst').check()
-    # TODO: More asserts for this...
-    assert tmpdir.join('django', 'django').check(dir=True)
-
-    # Again, this function is not wrapped in @httpretty.activate
+    # Teardown httpretty.
+    # Again, this function is not wrapped in @httpretty.activate,
+    # so these two *must* be explicitly called.
     httpretty.disable()  
     httpretty.reset() 
+
+    corpus_dir = tmpdir.join('corpus')
+
+    assert corpus_dir.check(dir=True)
+
+    assert corpus_dir.join('index.json').check(file=True)
+
+    assert corpus_dir.join('eddieantonio','dev').check(dir=True)
+    assert corpus_dir.join('eddieantonio', 'dev', 'dev.py').check(file=True)
+    assert corpus_dir.join('eddieantonio', 'dev', 'setup.py').check(file=True)
+    assert not corpus_dir.join('eddieantonio', 'dev', 'README.rst').check()
+
+    # Assert that none of the files here exist (but the directory can exist!).
+    # I may have gone overboard with the name here...
+    repo = 'syntax-errors-up-the-ying-yang'
+    assert corpus_dir.join('eddieantonio', repo).check(dir=True)
+    assert len(corpus_dir.join('eddieantonio', repo).listdir()) == 0
 
 def test_syntax_ok(monkeypatch, tmpdir):
     monkeypatch.chdir(tmpdir)

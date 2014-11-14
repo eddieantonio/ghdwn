@@ -5,12 +5,13 @@ Downloads a craptonne of code from GitHub. Uses only the Python standard
 library, because... uh...
 """
 
+import itertools
 import json
 import math
-import urllib2
-import re
-import itertools
+import os
 import py_compile
+import re
+import urllib2
 
 GITHUB_SEARCH_URL = "https://api.github.com/search/repositories"
 GITHUB_BASE = "https://github.com"
@@ -38,12 +39,14 @@ class GitHubSearchRequester(object):
         # Set the new buffer's contents.
         self.buffer = [tuple(repo['full_name'].split('/')) for repo in payload['items']]
 
-        self.next_url = parse_link_header(link_header)['next']
+        self.next_url = parse_link_header(link_header).get('next', None)
 
     def next(self):
         if self.buffer:
             return self.buffer.pop(0)
-        if not self.requests_left:
+
+        # Either no requests left or there are no more pages:
+        if not self.requests_left or not self.next_url:
             raise StopIteration()
 
         try:
@@ -122,10 +125,6 @@ def create_archive_url(owner, repository, release="master"):
             base=GITHUB_BASE, owner=owner, repository=repository,
             release=release)
 
-def rate_limit_permits(response):
-    "Check if more requests can be made on the GitHub API."
-    return response.info()['X-RateLimit-Remaining'] > 0
-
 def create_github_request(url):
     request = urllib2.Request(url)
     request.add_header('Accept', 'application/vnd.github.v3+json')
@@ -148,14 +147,23 @@ def post_process(repo_path, langauge):
     # For python files, will delete everything EXCEPT
     # the python files that compile.
 
-    #syntax_okay = os.system("python -m py_compile {0}".format(script))
-
-
-def download_corpus(language, quantity=1024):
+def download_corpus(language, directory, quantity=1024):
     """
-    Downloads a corpus, wooo.
+    Downloads a corpus to the the given directory.
     """
-    pass
+
+    # Create the directory if it doesn't exist first!
+    if not os.path.exists(directory):
+        os.mkdir(directory)
+
+    j = lambda *args: os.path.join(directory, *args)
+
+    index = get_github_list(language, quantity)
+    # Persist the index to a file.
+    with open(j('index.json'), 'w') as f:
+        json.dump(index, f)
+    
+    #os.makedirs()
 
 if __name__ == '__main__':
     raise NotImplemented()
