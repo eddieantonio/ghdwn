@@ -811,11 +811,10 @@ abbrev_search_bodies = [
 }"""
 ]
 
-# Load the FULL contents of both the real zip file and the broken zip file. 
+# Load the FULL contents of both the real zip file and the broken zip file.
 # Expose them as file-like objects.
 __dir = os.path.dirname(os.path.realpath(__file__))
 with open(os.path.join(__dir, 'dev-master.zip'), 'rb') as f:
-    dev_zip = cStringIO.StringIO(f.read())
+    dev_zip = f.read()
 with open(os.path.join(__dir, 'syntax-errors-up-the-ying-yang-master.zip'), 'rb') as f:
-    broken_zip = cStringIO.StringIO(f.read())
-
+    broken_zip = f.read()

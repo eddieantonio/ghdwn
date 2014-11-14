@@ -23,45 +23,47 @@ def test_download_java():
         headers['Content-Type'] = 'application/json'
         headers['X-RateLimit-Remaining'] = next(requests_remaining)
         headers['Link'] = (
-                '<https://api.github.com/search/repositories?'
-                'q=language%3Apython&sort=stars&page={0}>; rel="next", '
-                '<https://api.github.com/search/repositories?'
-                'q=language%3Ajava&sort=stars&page=34>; rel="last"').format(
-                        next(page_no))
+            '<https://api.github.com/search/repositories?'
+            'q=language%3Apython&sort=stars&page={0}>; rel="next", '
+            '<https://api.github.com/search/repositories?'
+            'q=language%3Ajava&sort=stars&page=34>; rel="last"').format(
+            next(page_no))
 
         return 200, headers, next(body)
 
     httpretty.register_uri(httpretty.GET,
-        "https://api.github.com/search/repositories",
-        body=request_callback)
+                           "https://api.github.com/search/repositories",
+                           body=request_callback)
     index = ghdwn.get_github_list('python')
 
     assert len(index) == 8
     assert index == [
-            ('jakubroztocil', 'httpie'),
-            ('django', 'django'),
-            ('kennethreitz', 'requests'),
-            ('mitsuhiko', 'flask'),
-            ('ansible', 'ansible'),
-            ('tornadoweb', 'tornado'),
-            ('numbbbbb', 'the-swift-programming-language-in-chinese'),
-            ('reddit', 'reddit')
+        ('jakubroztocil', 'httpie'),
+        ('django', 'django'),
+        ('kennethreitz', 'requests'),
+        ('mitsuhiko', 'flask'),
+        ('ansible', 'ansible'),
+        ('tornadoweb', 'tornado'),
+        ('numbbbbb', 'the-swift-programming-language-in-chinese'),
+        ('reddit', 'reddit')
     ]
+
 
 @httpretty.activate
 def test_rate_limiting():
     # Come up with zero results.
     httpretty.register_uri(httpretty.GET,
-            "https://api.github.com/search/repositories",
-            status=403,
-            content_type="application/json",
-            adding_headers={
-                'X-RateLimit-Remaining': '0'
-            })
+                           "https://api.github.com/search/repositories",
+                           status=403,
+                           content_type="application/json",
+                           adding_headers={
+                               'X-RateLimit-Remaining': '0'
+                           })
 
     # Should have gotten zero results...
     index = ghdwn.get_github_list('python')
     assert index == []
+
 
 def test_download_corpus(monkeypatch, tmpdir):
     # Pretend we're in a temporary directory...
@@ -75,13 +77,13 @@ def test_download_corpus(monkeypatch, tmpdir):
         headers['Content-Type'] = 'application/json'
         headers['X-RateLimit-Remaining'] = 10
         headers['Link'] = (
-                '<https://api.github.com/search/repositories?'
-                'q=language%3Apython&sort=stars&page=1>; rel="last"')
+            '<https://api.github.com/search/repositories?'
+            'q=language%3Apython&sort=stars&page=1>; rel="last"')
         return 200, headers, next(body)
 
     httpretty.register_uri(httpretty.GET,
-        "https://api.github.com/search/repositories",
-        body=request_callback)
+                           "https://api.github.com/search/repositories",
+                           body=request_callback)
 
     # Download that entire corpus.
     ghdwn.download_corpus('python', 'corpus')
@@ -89,8 +91,8 @@ def test_download_corpus(monkeypatch, tmpdir):
     # Teardown httpretty.
     # Again, this function is not wrapped in @httpretty.activate,
     # so these two *must* be explicitly called.
-    httpretty.disable()  
-    httpretty.reset() 
+    httpretty.disable()
+    httpretty.reset()
 
     corpus_dir = tmpdir.join('corpus')
 
@@ -98,7 +100,7 @@ def test_download_corpus(monkeypatch, tmpdir):
 
     assert corpus_dir.join('index.json').check(file=True)
 
-    assert corpus_dir.join('eddieantonio','dev').check(dir=True)
+    assert corpus_dir.join('eddieantonio', 'dev').check(dir=True)
     assert corpus_dir.join('eddieantonio', 'dev', 'dev.py').check(file=True)
     assert corpus_dir.join('eddieantonio', 'dev', 'setup.py').check(file=True)
     assert not corpus_dir.join('eddieantonio', 'dev', 'README.rst').check()
@@ -108,6 +110,7 @@ def test_download_corpus(monkeypatch, tmpdir):
     repo = 'syntax-errors-up-the-ying-yang'
     assert corpus_dir.join('eddieantonio', repo).check(dir=True)
     assert len(corpus_dir.join('eddieantonio', repo).listdir()) == 0
+
 
 def test_syntax_ok(monkeypatch, tmpdir):
     monkeypatch.chdir(tmpdir)

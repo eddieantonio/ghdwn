@@ -16,11 +16,14 @@ import urllib2
 GITHUB_SEARCH_URL = "https://api.github.com/search/repositories"
 GITHUB_BASE = "https://github.com"
 
+
 class GitHubSearchRequester(object):
+
     """
     Requests stuff from GitHub. You can tell it downloads GitHub stuff because
     of the way it is. Wow.
     """
+
     def __init__(self, language):
         self.requests_left = 1
         self.next_url = create_search_url(language, quantity=100)
@@ -37,7 +40,8 @@ class GitHubSearchRequester(object):
         link_header = response.info()['Link']
 
         # Set the new buffer's contents.
-        self.buffer = [tuple(repo['full_name'].split('/')) for repo in payload['items']]
+        self.buffer = [tuple(repo['full_name'].split('/'))
+                       for repo in payload['items']]
 
         self.next_url = parse_link_header(link_header).get('next', None)
 
@@ -71,6 +75,7 @@ def get_github_list(language, quantity=1024):
     urls = itertools.islice(GitHubSearchRequester(language), quantity)
     return list(urls)
 
+
 def parse_link_header(header):
     """
     Parses the content of a Link: header.
@@ -94,6 +99,7 @@ def parse_link_header(header):
 
     return links
 
+
 def create_search_url(language, page=1, quantity=100):
     """
     Creates a URL for search repositories based on the langauge.
@@ -103,8 +109,10 @@ def create_search_url(language, page=1, quantity=100):
     'https://api.github.com/search/repositories?q=language:coffeescript&sort=stars&per_page=100&page=10'
     """
 
-    if type(page) is not int: raise TypeError('Need an int for page number')
-    if page < 1: raise ValueError('Pages must be greater than 0')
+    if type(page) is not int:
+        raise TypeError('Need an int for page number')
+    if page < 1:
+        raise ValueError('Pages must be greater than 0')
 
     base = GITHUB_SEARCH_URL
     template = ("{base}?q=language:{language}&sort=stars"
@@ -122,13 +130,15 @@ def create_archive_url(owner, repository, release="master"):
     'https://github.com/gabebw/mean_girls/archive/v0.0.1.zip'
     """
     return "{base}/{owner}/{repository}/archive/{release}.zip".format(
-            base=GITHUB_BASE, owner=owner, repository=repository,
-            release=release)
+        base=GITHUB_BASE, owner=owner, repository=repository,
+        release=release)
+
 
 def create_github_request(url):
     request = urllib2.Request(url)
     request.add_header('Accept', 'application/vnd.github.v3+json')
     return request
+
 
 def syntax_ok(filepath):
     """
@@ -140,12 +150,26 @@ def syntax_ok(filepath):
     except py_compile.PyCompileError:
         return False
 
+
 def post_process(repo_path, langauge):
     if language != 'python':
         return
 
     # For python files, will delete everything EXCEPT
     # the python files that compile.
+
+def mkdirp(*dirs):
+    """
+    """
+    fullpath = os.path.join(*dirs)
+    try:
+        os.mkdirs(fullpath)
+    except OSError as e:
+        # XXX: Oh gosh, Eddie...
+        # Ignore the error if it's "File exists"
+        if e.strerror != 'File exists':
+            raise e
+    return fullpath
 
 def download_corpus(language, directory, quantity=1024):
     """
@@ -162,8 +186,8 @@ def download_corpus(language, directory, quantity=1024):
     # Persist the index to a file.
     with open(j('index.json'), 'w') as f:
         json.dump(index, f)
-    
-    #os.makedirs()
+
+    # os.makedirs()
 
 if __name__ == '__main__':
     raise NotImplemented()
