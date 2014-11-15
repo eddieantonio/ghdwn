@@ -16,7 +16,8 @@ import mock_data
 def test_download_java():
 
     # Sample request bodies:
-    requests_remaining, body = count(9, -1), iter(mock_data.search_bodies)
+    requests_remaining = iter(xrange(9, -1, -1))
+    body = iter(mock_data.search_bodies)
     page_no = count(2)
 
     def request_callback(request, uri, headers):

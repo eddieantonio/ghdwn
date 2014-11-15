@@ -1,13 +1,13 @@
-=======================
-ghdown­download corpora
-=======================
+=========================
+ghdown ❧ download corpora
+=========================
 
 .. image:: https://travis-ci.org/eddieantonio/ghdwn.svg
     :target: https://travis-ci.org/eddieantonio/ghdwn
 
 Downloads the most popular projects for a given language. For Python
 files, it only writes files that compile as valid Python to the
-filesystem.
+file system.
 
 -----
 Usage
