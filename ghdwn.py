@@ -5,13 +5,14 @@ Downloads a craptonne of code from GitHub. Uses only the Python standard
 library, because... uh...
 """
 
+import cStringIO
 import itertools
 import json
 import math
 import os
-import py_compile
 import re
 import urllib2
+import zipfile
 
 GITHUB_SEARCH_URL = "https://api.github.com/search/repositories"
 GITHUB_BASE = "https://github.com"
@@ -179,11 +180,47 @@ def mkdirp(*dirs):
     return fullpath
 
 
+def download_repo_zip(owner, repo):
+    request = create_github_request(create_archive_url(owner, repo, 'master'))
+    response = urllib2.urlopen(request)
+
+    assert response.info()['Content-Type'] == 'application/zip'
+    # Need to create a "real" file-like object...
+    file_like = cStringIO.StringIO(response.read())
+
+    return zipfile.ZipFile(file_like, allowZip64=True)
+
+
+def maybe_write_file(directory, file_path, file_content):
+    if not file_content or not syntax_ok(file_content):
+        return False
+
+    zip_path = os.path.split(file_path)
+
+    assert len(zip_path) >= 2
+
+    filename = zip_path[-1]
+    file_directory = zip_path[1:-1]
+
+    file_dir_name = mkdirp(directory, *file_directory)
+    file_path = os.path.join(file_dir_name, filename)
+
+    with open(file_path, 'wb') as f:
+        f.write(file_content)
+
+    return True
+
+
 def download_repo(owner, repo, directory, language="python"):
     """
-    Downloads a repository. Does post-processing on the repo.
+    Downloads a repository and keeps only the files that validly compile.
     """
-    mkdirp(directory, owner, repo)
+    base_dir = mkdirp(directory, owner, repo)
+
+    archive = download_repo_zip(owner, repo)
+    for filename in archive.namelist():
+        content = archive.open(filename).read()
+        maybe_write_file(base_dir, filename, content)
 
 
 def download_corpus(language, directory, quantity=1024):

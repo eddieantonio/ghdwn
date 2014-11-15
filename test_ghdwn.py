@@ -81,9 +81,21 @@ def test_download_corpus(monkeypatch, tmpdir):
             'q=language%3Apython&sort=stars&page=1>; rel="last"')
         return 200, headers, next(body)
 
+    # Register the index path.
     httpretty.register_uri(httpretty.GET,
                            "https://api.github.com/search/repositories",
                            body=request_callback)
+
+    # Register the zip paths.
+    httpretty.register_uri(httpretty.GET,
+                           ghdwn.create_archive_url('eddieantonio', 'dev'),
+                           body=mock_data.dev_zip,
+                           content_type='application/zip')
+    broken_url = ghdwn.create_archive_url('eddieantonio',
+                                          'syntax-errors-up-the-ying-yang')
+    httpretty.register_uri(httpretty.GET, broken_url,
+                           body=mock_data.broken_zip,
+                           content_type='application/zip')
 
     # Download that entire corpus.
     ghdwn.download_corpus('python', 'corpus')
@@ -110,4 +122,3 @@ def test_download_corpus(monkeypatch, tmpdir):
     repo = 'syntax-errors-up-the-ying-yang'
     assert corpus_dir.join('eddieantonio', repo).check(dir=True)
     assert len(corpus_dir.join('eddieantonio', repo).listdir()) == 0
-
