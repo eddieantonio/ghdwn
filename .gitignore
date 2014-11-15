@@ -1,8 +1,2 @@
-json
-repo
-tmp
-urls
-index.txt
 __pycache__
-ghtoken
-sample
+*.pyc

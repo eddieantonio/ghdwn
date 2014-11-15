@@ -11,8 +11,11 @@ import json
 import math
 import os
 import re
+import sys
 import urllib2
 import zipfile
+
+__version__ = '0.1.0'
 
 GITHUB_SEARCH_URL = "https://api.github.com/search/repositories"
 GITHUB_BASE = "https://github.com"
@@ -142,17 +145,19 @@ def create_github_request(url):
 
 
 def syntax_ok(contents):
-    """
+    r"""
     Given a source file, returns True if the file compiles.
 
     >>> syntax_ok('print "Hello, World!",')
     True
     >>> syntax_ok('import java.util.*;')
     False
+    >>> syntax_ok('\x89PNG\x0D\x0A\x1A\x0A\x00\x00\x00\x0D')
+    False
     """
     try:
         compile(contents, '<unknown>', 'exec')
-    except SyntaxError:
+    except (SyntaxError, TypeError):
         return False
     return True
 
@@ -243,5 +248,22 @@ def download_corpus(language, directory, quantity=1024):
     for owner, repo in index:
         download_repo(owner, repo, directory, language)
 
+
+def usage():
+    message = ("Usage:\n"
+               "\t{0} language [directory [quantity]]\n\n")
+    sys.stderr.write(message.format(sys.argv[0]))
+
+
+def main(argv=sys.argv):
+    if len(argv) <= 1:
+        usage()
+        exit(-1)
+
+    language = argv[1]
+    directory = argv[2] if len(argv) >= 3 else './corpus'
+    quantity = int(argv[3]) if len(argv) >= 4 else 1024
+    download_corpus(language, directory, quantity)
+
 if __name__ == '__main__':
-    raise NotImplemented()
+    exit(main())
