@@ -111,16 +111,3 @@ def test_download_corpus(monkeypatch, tmpdir):
     assert corpus_dir.join('eddieantonio', repo).check(dir=True)
     assert len(corpus_dir.join('eddieantonio', repo).listdir()) == 0
 
-
-def test_syntax_ok(monkeypatch, tmpdir):
-    monkeypatch.chdir(tmpdir)
-
-    valid_python = tmpdir.join('alright.py')
-    valid_python.write('print "Hello, World!",')
-
-    assert ghdwn.syntax_ok(str(valid_python))
-
-    invalid_python = tmpdir.join('no_good.py')
-    invalid_python.write('import java.util.*;')
-
-    assert not ghdwn.syntax_ok(str(invalid_python))

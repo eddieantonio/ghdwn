@@ -140,15 +140,20 @@ def create_github_request(url):
     return request
 
 
-def syntax_ok(filepath):
+def syntax_ok(contents):
     """
-    Given a filename, returns True if the file compiles.
+    Given a source file, returns True if the file compiles.
+
+    >>> syntax_ok('print "Hello, World!",')
+    True
+    >>> syntax_ok('import java.util.*;')
+    False
     """
     try:
-        py_compile.compile(filepath, doraise=True)
-        return True
-    except py_compile.PyCompileError:
+        compile(contents, '<unknown>', 'exec')
+    except SyntaxError:
         return False
+    return True
 
 
 def post_process(repo_path, langauge):
@@ -158,18 +163,28 @@ def post_process(repo_path, langauge):
     # For python files, will delete everything EXCEPT
     # the python files that compile.
 
+
 def mkdirp(*dirs):
     """
+    Creates a deep directory hierarchy, unless it doesn't exist.
     """
     fullpath = os.path.join(*dirs)
     try:
-        os.mkdirs(fullpath)
+        os.makedirs(fullpath)
     except OSError as e:
         # XXX: Oh gosh, Eddie...
         # Ignore the error if it's "File exists"
         if e.strerror != 'File exists':
             raise e
     return fullpath
+
+
+def download_repo(owner, repo, directory, language="python"):
+    """
+    Downloads a repository. Does post-processing on the repo.
+    """
+    mkdirp(directory, owner, repo)
+
 
 def download_corpus(language, directory, quantity=1024):
     """
@@ -183,11 +198,13 @@ def download_corpus(language, directory, quantity=1024):
     j = lambda *args: os.path.join(directory, *args)
 
     index = get_github_list(language, quantity)
+
     # Persist the index to a file.
     with open(j('index.json'), 'w') as f:
         json.dump(index, f)
 
-    # os.makedirs()
+    for owner, repo in index:
+        download_repo(owner, repo, directory, language)
 
 if __name__ == '__main__':
     raise NotImplemented()
