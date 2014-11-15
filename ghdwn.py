@@ -5,6 +5,7 @@ Downloads a craptonne of code from GitHub. Uses only the Python standard
 library, because... uh...
 """
 
+import codecs
 import itertools
 import json
 import os
@@ -46,8 +47,9 @@ class GitHubSearchRequester(object):
         response = urlopen(create_github_request(self.next_url))
 
         assert 'charset=utf-8' in response.info().get('Content-Type')
-        str_payload = response.readall().decode('utf-8')
-        payload = json.loads(str_payload)
+
+        reader = codecs.getreader("utf-8")
+        payload = json.load(reader(response))
 
         link_header = response.info().get('Link', '')
 
