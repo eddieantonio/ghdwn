@@ -20,7 +20,7 @@ def test_download_java():
     page_no = count(2)
 
     def request_callback(request, uri, headers):
-        headers['Content-Type'] = 'application/json'
+        headers['Content-Type'] = 'application/json; charset=utf-8'
         headers['X-RateLimit-Remaining'] = next(requests_remaining)
         headers['Link'] = (
             '<https://api.github.com/search/repositories?'
@@ -55,7 +55,7 @@ def test_rate_limiting():
     httpretty.register_uri(httpretty.GET,
                            "https://api.github.com/search/repositories",
                            status=403,
-                           content_type="application/json",
+                           content_type="application/json; charset=utf-8",
                            adding_headers={
                                'X-RateLimit-Remaining': '0'
                            })
@@ -74,7 +74,7 @@ def test_download_corpus(monkeypatch, tmpdir):
     body = iter(mock_data.abbrev_search_bodies)
 
     def request_callback(request, uri, headers):
-        headers['Content-Type'] = 'application/json'
+        headers['Content-Type'] = 'application/json; charset=utf-8'
         headers['X-RateLimit-Remaining'] = 10
         headers['Link'] = (
             '<https://api.github.com/search/repositories?'

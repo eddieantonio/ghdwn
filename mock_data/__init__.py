@@ -2,7 +2,6 @@
 # coding: utf-8
 
 import os
-import cStringIO
 
 # Results parsed from this unwieldy curl invocation:
 #

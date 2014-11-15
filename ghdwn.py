@@ -5,15 +5,20 @@ Downloads a craptonne of code from GitHub. Uses only the Python standard
 library, because... uh...
 """
 
-import cStringIO
 import itertools
 import json
-import math
 import os
 import re
 import sys
-import urllib2
 import zipfile
+import io
+
+# These are different in Python 3...
+try:
+    from urllib.request import urlopen, Request
+    from urllib.error import HTTPError
+except ImportError:
+    from urllib2 import urlopen, Request, HTTPError
 
 __version__ = '0.1.0'
 
@@ -38,10 +43,13 @@ class GitHubSearchRequester(object):
 
     def request_next_page(self):
         # Do that nasty request
-        response = urllib2.urlopen(create_github_request(self.next_url))
+        response = urlopen(create_github_request(self.next_url))
 
-        payload = json.load(response)
-        link_header = response.info()['Link']
+        assert 'charset=utf-8' in response.info().get('Content-Type')
+        str_payload = response.readall().decode('utf-8')
+        payload = json.loads(str_payload)
+
+        link_header = response.info().get('Link', '')
 
         # Set the new buffer's contents.
         self.buffer = [tuple(repo['full_name'].split('/'))
@@ -60,13 +68,16 @@ class GitHubSearchRequester(object):
         try:
             self.request_next_page()
         # Some HTTP error occured. Return no results.
-        except urllib2.HTTPError:
+        except HTTPError:
             self.buffer = []
 
         if self.buffer:
             return self.buffer.pop(0)
         else:
             raise StopIteration()
+
+    # For Python 3 compatibility:
+    __next__ = next
 
 
 def get_github_list(language, quantity=1024):
@@ -90,8 +101,10 @@ def parse_link_header(header):
     'https://example.com?page=6&q=language%3Apython'
     >>> links['prev']
     'https://example.com?page=36&q=language%3Apython'
+    >>> parse_link_header('')
+    {}
     """
-    raw_links = re.split(r',\s+', header)
+    raw_links = re.split(r',\s+', header) if header.strip() else []
 
     links = {}
     for text in raw_links:
@@ -139,7 +152,7 @@ def create_archive_url(owner, repository, release="master"):
 
 
 def create_github_request(url):
-    request = urllib2.Request(url)
+    request = Request(url)
     request.add_header('Accept', 'application/vnd.github.v3+json')
     return request
 
@@ -148,7 +161,7 @@ def syntax_ok(contents):
     r"""
     Given a source file, returns True if the file compiles.
 
-    >>> syntax_ok('print "Hello, World!",')
+    >>> syntax_ok('print("Hello, World!")')
     True
     >>> syntax_ok('import java.util.*;')
     False
@@ -160,15 +173,6 @@ def syntax_ok(contents):
     except (SyntaxError, TypeError):
         return False
     return True
-
-
-def post_process(repo_path, langauge):
-    if language != 'python':
-        return
-
-    # For python files, will delete everything EXCEPT
-    # the python files that compile.
-
 
 def mkdirp(*dirs):
     """
@@ -187,11 +191,11 @@ def mkdirp(*dirs):
 
 def download_repo_zip(owner, repo):
     request = create_github_request(create_archive_url(owner, repo, 'master'))
-    response = urllib2.urlopen(request)
+    response = urlopen(request)
 
     assert response.info()['Content-Type'] == 'application/zip'
     # Need to create a "real" file-like object...
-    file_like = cStringIO.StringIO(response.read())
+    file_like = io.BytesIO(response.read())
 
     return zipfile.ZipFile(file_like, allowZip64=True)
 
