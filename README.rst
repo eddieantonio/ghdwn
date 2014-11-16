@@ -22,6 +22,18 @@ For example::
 
 Downloads the top 1024 Python projects to `corpus/`.
 
+
+-------------
+Authorization
+-------------
+
+If you have a `GitHub Access Token`_, you can place it in a file called
+`~/.ghtoken` and it will be automtically be used with requests. This
+allows for greater freedom regarding rate-limiting.
+
+.. _GitHub Access Token: https://help.github.com/articles/creating-an-access-token-for-command-line-use/
+
+
 -------
 License
 -------

@@ -50,6 +50,63 @@ def test_download_java():
     ]
 
 
+def test_authentication(monkeypatch):
+    import os.path
+    import io
+
+    auth_token = 'fhqwhgads\n'
+    
+    # Monkey-Patch open() to return specific file content.
+    original_open = open
+    def intercept_open(path, *args, **kwargs):
+        if path == os.path.expanduser('~/.ghtoken'):
+            return io.BytesIO(auth_token)
+        return original_open(file, *args, **kwargs)
+    monkeypatch.setitem(__builtins__, 'open', intercept_open)
+
+    # Enable HTTPretty and register the index path.
+    httpretty.enable()
+
+    body = iter(mock_data.abbrev_search_bodies)
+    def request_callback(request, uri, headers):
+        headers['Content-Type'] = 'application/json; charset=utf-8'
+        headers['X-RateLimit-Remaining'] = 10
+        headers['Link'] = (
+            '<https://api.github.com/search/repositories?'
+            'q=language%3Apython&sort=stars&page=1>; rel="last"')
+        return 200, headers, next(body)
+
+    httpretty.register_uri(httpretty.GET,
+                           "https://api.github.com/search/repositories",
+                           body=request_callback)
+
+    # Simply issue the request...
+    ghdwn.get_github_list('java')
+    assert httpretty.last_request().headers['Authorization'] == 'token fhqwhgads'
+
+    original_exists = os.path.exists
+    def intercept_exists(path, *args, **kwargs):
+        if path == os.path.expanduser('~/.ghtoken'):
+            return False
+        return original_exists(path, *args, **kwargs)
+    monkeypatch.setattr(os.path, 'exists', intercept_exists)
+
+    # Now pretend that file DOES NOT exist!
+    def intercept_open_failure(path, *args, **kwargs):
+        if path == os.path.expanduser('~/.ghtoken'):
+            raise IOError('Could not find file!')
+        return original_open(file, *args, **kwargs)
+    monkeypatch.setitem(__builtins__, 'open', intercept_open_failure)
+
+    # Issue the same request again:
+    ghdwn.get_github_list('java')
+    assert 'Authorization' not in httpretty.last_request().headers
+
+    # Disable HTTPretty
+    httpretty.disable()
+    httpretty.reset()
+
+
 @httpretty.activate
 def test_rate_limiting():
     # Come up with zero results.

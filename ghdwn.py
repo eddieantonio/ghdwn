@@ -10,11 +10,11 @@ import collections
 import io
 import itertools
 import json
+import logging
 import os
 import re
 import sys
 import zipfile
-import logging
 
 # These are different in Python 3...
 try:
@@ -30,7 +30,6 @@ GITHUB_BASE = "https://github.com"
 
 logger = logging.getLogger()
 logging.basicConfig()
-#logger.setLevel(0)
 
 class GitHubSearchRequester(object):
 
@@ -214,6 +213,14 @@ def create_archive_url(owner, repository, release="master"):
 def create_github_request(url):
     request = Request(url)
     request.add_header('Accept', 'application/vnd.github.v3+json')
+
+    # Add authorization header...
+    auth_token_path = os.path.expanduser('~/.ghtoken')
+    if os.path.exists(auth_token_path):
+        with open(auth_token_path) as f:
+            token = f.read().rstrip()
+        request.add_header('Authorization', 'token {}'.format(token))
+
     return request
 
 
