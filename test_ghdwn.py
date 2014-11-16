@@ -55,9 +55,10 @@ def test_authentication(monkeypatch):
     import io
 
     auth_token = 'fhqwhgads\n'
-    
+
     # Monkey-Patch open() to return specific file content.
     original_open = open
+
     def intercept_open(path, *args, **kwargs):
         if path == os.path.expanduser('~/.ghtoken'):
             return io.BytesIO(auth_token)
@@ -68,6 +69,7 @@ def test_authentication(monkeypatch):
     httpretty.enable()
 
     body = iter(mock_data.abbrev_search_bodies)
+
     def request_callback(request, uri, headers):
         headers['Content-Type'] = 'application/json; charset=utf-8'
         headers['X-RateLimit-Remaining'] = 10
@@ -82,9 +84,11 @@ def test_authentication(monkeypatch):
 
     # Simply issue the request...
     ghdwn.get_github_list('java')
-    assert httpretty.last_request().headers['Authorization'] == 'token fhqwhgads'
+    assert httpretty.last_request().headers[
+        'Authorization'] == 'token fhqwhgads'
 
     original_exists = os.path.exists
+
     def intercept_exists(path, *args, **kwargs):
         if path == os.path.expanduser('~/.ghtoken'):
             return False
@@ -187,4 +191,3 @@ def test_download_corpus(monkeypatch, tmpdir):
     # This file is nested, but it compiles just fine!
     assert corpus_dir.join('eddieantonio', repo, 'working',
                            '__init__.py').check(file=True)
-

@@ -23,13 +23,14 @@ try:
 except ImportError:
     from urllib2 import urlopen, Request, HTTPError
 
-__version__ = '0.1.0'
+__version__ = '0.2.0'
 
 GITHUB_SEARCH_URL = "https://api.github.com/search/repositories"
 GITHUB_BASE = "https://github.com"
 
 logger = logging.getLogger()
 logging.basicConfig()
+
 
 class GitHubSearchRequester(object):
 
@@ -73,7 +74,7 @@ class GitHubSearchRequester(object):
 
         try:
             self.request_next_page()
-        # Some HTTP error occured. Return no results.
+        # Some HTTP error occurred. Return no results.
         except HTTPError:
             self.buffer = []
 
@@ -316,7 +317,7 @@ def download_repo(repo, directory, language="python"):
 
 def download_corpus(language, directory, quantity=1024):
     """
-    Downloads a corpus to the the given directory.
+    Downloads a corpus to the given directory.
     """
 
     # Create the directory if it doesn't exist first!

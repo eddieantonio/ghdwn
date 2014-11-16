@@ -28,7 +28,7 @@ Authorization
 -------------
 
 If you have a `GitHub Access Token`_, you can place it in a file called
-`~/.ghtoken` and it will be automtically be used with requests. This
+`~/.ghtoken` and it will be automatically be used with requests. This
 allows for greater freedom regarding rate-limiting.
 
 .. _GitHub Access Token: https://help.github.com/articles/creating-an-access-token-for-command-line-use/
