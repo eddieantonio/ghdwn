@@ -235,10 +235,13 @@ def syntax_ok(contents):
     False
     >>> syntax_ok('\x89PNG\x0D\x0A\x1A\x0A\x00\x00\x00\x0D')
     False
+    >>> syntax_ok(r"AWESOME_CHAR_ESCAPE = '\x0G'")
+    False
     """
     try:
         compile(contents, '<unknown>', 'exec')
-    except (SyntaxError, TypeError):
+        # why does compile throw so many generic exceptions...? >.<
+    except (SyntaxError, TypeError, ValueError):
         return False
     return True
 
