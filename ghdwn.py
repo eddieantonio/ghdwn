@@ -85,15 +85,45 @@ class GitHubSearchRequester(object):
 
 
 class RepositoryInfo(object):
+
     def __init__(self, owner, repo, default_branch='master'):
         self.owner = owner
         self.repository = repo
         self.default_branch = default_branch
+
     @property
     def archive_url(self):
         return "{base}/{owner}/{repository}/archive/{release}.zip".format(
             base=GITHUB_BASE, owner=self.owner, repository=self.repository,
             release=self.default_branch)
+
+    def __repr__(self):
+        args = ', '.join(repr(vars(self)[name]) for name in (
+            'owner', 'repository', 'default_branch'))
+        return 'RepositoryInfo({0:s})'.format(args)
+
+    def __str__(self):
+        return "{owner}/{repository}".format(**vars(self))
+
+    @classmethod
+    def from_json(cls, json):
+        """
+        Creates a RepositoryInfo object from a single element of the JSON
+        search body.
+
+        >>> json = {'name': 'dev', 'owner': {'login': 'eddieantonio'}}
+        >>> RepositoryInfo.from_json(json)
+        RepositoryInfo('eddieantonio', 'dev', 'master')
+        >>> json['default_branch'] = 'dev'
+        >>> RepositoryInfo.from_json(json)
+        RepositoryInfo('eddieantonio', 'dev', 'dev')
+
+        """
+        owner = json['owner']['login']
+        name = json['name']
+        default_branch = json.get('default_branch', 'master')
+
+        return cls(owner, name, default_branch)
 
 
 def get_github_list(language, quantity=1024):
@@ -187,6 +217,7 @@ def syntax_ok(contents):
     except (SyntaxError, TypeError):
         return False
     return True
+
 
 def mkdirp(*dirs):
     """
