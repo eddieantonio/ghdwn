@@ -85,16 +85,15 @@ class GitHubSearchRequester(object):
 
 
 class RepositoryInfo(object):
-    def __init__(self, owner, repo, branch):
-        pass
+    def __init__(self, owner, repo, default_branch='master'):
+        self.owner = owner
+        self.repository = repo
+        self.default_branch = default_branch
     @property
     def archive_url(self):
-        pass
-
-
-#RepositoryInfo = collecions.namedtuple('RepositoryInfo',
-                                       #'owner repo branch'
-
+        return "{base}/{owner}/{repository}/archive/{release}.zip".format(
+            base=GITHUB_BASE, owner=self.owner, repository=self.repository,
+            release=self.default_branch)
 
 
 def get_github_list(language, quantity=1024):
@@ -163,9 +162,7 @@ def create_archive_url(owner, repository, release="master"):
     >>> create_archive_url('gabebw', 'mean_girls', 'v0.0.1')
     'https://github.com/gabebw/mean_girls/archive/v0.0.1.zip'
     """
-    return "{base}/{owner}/{repository}/archive/{release}.zip".format(
-        base=GITHUB_BASE, owner=owner, repository=repository,
-        release=release)
+    return RepositoryInfo(owner, repository, release).archive_url
 
 
 def create_github_request(url):
