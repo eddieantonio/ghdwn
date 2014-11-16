@@ -53,6 +53,7 @@ def test_download_java():
 def test_authentication(monkeypatch):
     import os.path
     import io
+    import __builtin__
 
     auth_token = 'fhqwhgads\n'
 
@@ -63,7 +64,7 @@ def test_authentication(monkeypatch):
         if path == os.path.expanduser('~/.ghtoken'):
             return io.BytesIO(auth_token)
         return original_open(file, *args, **kwargs)
-    monkeypatch.setitem(__builtins__, 'open', intercept_open)
+    monkeypatch.setattr(__builtin__, 'open', intercept_open)
 
     # Enable HTTPretty and register the index path.
     httpretty.enable()
@@ -97,10 +98,11 @@ def test_authentication(monkeypatch):
 
     # Now pretend that file DOES NOT exist!
     def intercept_open_failure(path, *args, **kwargs):
+        assert False
         if path == os.path.expanduser('~/.ghtoken'):
             raise IOError('Could not find file!')
         return original_open(file, *args, **kwargs)
-    monkeypatch.setitem(__builtins__, 'open', intercept_open_failure)
+    monkeypatch.setattr(__builtin__, 'open', intercept_open_failure)
 
     # Issue the same request again:
     ghdwn.get_github_list('java')

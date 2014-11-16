@@ -23,7 +23,7 @@ try:
 except ImportError:
     from urllib2 import urlopen, Request, HTTPError
 
-__version__ = '0.2.0'
+__version__ = '0.2.1'
 
 GITHUB_SEARCH_URL = "https://api.github.com/search/repositories"
 GITHUB_BASE = "https://github.com"
