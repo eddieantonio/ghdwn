@@ -103,7 +103,7 @@ class RepositoryInfo(object):
         return 'RepositoryInfo({0:s})'.format(args)
 
     def __str__(self):
-        return "{owner}/{repository}".format(**vars(self))
+        return "{owner}/{name}".format(**vars(self))
 
     def __eq__(self, other):
         if isinstance(other, tuple):
@@ -142,7 +142,7 @@ class RepositoryInfo(object):
 def get_github_list(language, quantity=1024):
     """
     Returns a great big list of suitable owner/repository tuples for the given
-    langauge.
+    language.
     """
     # GitHubSearchRequester does the bulk of the work. Using islice to emit at most
     # `quantity` results.
@@ -178,7 +178,7 @@ def parse_link_header(header):
 
 def create_search_url(language, page=1, quantity=100):
     """
-    Creates a URL for search repositories based on the langauge.
+    Creates a URL for search repositories based on the language.
     >>> create_search_url('python')
     'https://api.github.com/search/repositories?q=language:python&sort=stars&per_page=100&page=1'
     >>> create_search_url('coffeescript', 10)
@@ -248,10 +248,13 @@ def mkdirp(*dirs):
 
 
 def download_repo_zip(repo):
-    request = create_github_request(repo.archive_url)
+    url = repo.archive_url
+    logging.info("Downloading %s...", url)
+    request = create_github_request(url)
     try:
         response = urlopen(request)
     except HTTPError:
+        logging.exception("Download failed: %s", url)
         return None
 
     assert response.info()['Content-Type'] == 'application/zip'
@@ -276,6 +279,7 @@ def maybe_write_file(directory, file_path, file_content):
     file_dir_name = mkdirp(directory, *file_directory)
     file_path = os.path.join(file_dir_name, filename)
 
+    logging.debug('Writing %s...', file_path)
     with open(file_path, 'wb') as f:
         f.write(file_content)
 
@@ -311,6 +315,7 @@ def download_corpus(language, directory, quantity=1024):
     j = lambda *args: os.path.join(directory, *args)
 
     index = get_github_list(language, quantity)
+    logging.info('Found %d/%d results for %s', len(index), quantity, language)
 
     # Persist the index to a file.
     with open(j('index.json'), 'w') as f:
