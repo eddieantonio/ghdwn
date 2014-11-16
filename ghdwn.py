@@ -28,6 +28,9 @@ __version__ = '0.1.0'
 GITHUB_SEARCH_URL = "https://api.github.com/search/repositories"
 GITHUB_BASE = "https://github.com"
 
+logger = logging.getLogger()
+logging.basicConfig()
+#logger.setLevel(0)
 
 class GitHubSearchRequester(object):
 
@@ -249,12 +252,12 @@ def mkdirp(*dirs):
 
 def download_repo_zip(repo):
     url = repo.archive_url
-    logging.info("Downloading %s...", url)
+    logger.info("Downloading %s...", url)
     request = create_github_request(url)
     try:
         response = urlopen(request)
     except HTTPError:
-        logging.exception("Download failed: %s", url)
+        logger.exception("Download failed: %s", url)
         return None
 
     assert response.info()['Content-Type'] == 'application/zip'
@@ -269,7 +272,7 @@ def maybe_write_file(directory, file_path, file_content):
     if not file_content or not syntax_ok(file_content):
         return False
 
-    zip_path = os.path.split(file_path)
+    zip_path = file_path.split(os.sep)
 
     assert len(zip_path) >= 2
 
@@ -279,7 +282,8 @@ def maybe_write_file(directory, file_path, file_content):
     file_dir_name = mkdirp(directory, *file_directory)
     file_path = os.path.join(file_dir_name, filename)
 
-    logging.debug('Writing %s...', file_path)
+    logger.debug('Writing %s...', file_path)
+    logger.debug('Its zip path %s...', zip_path)
     with open(file_path, 'wb') as f:
         f.write(file_content)
 
@@ -295,7 +299,7 @@ def download_repo(repo, directory, language="python"):
     archive = download_repo_zip(repo)
 
     if not archive:
-        logging.error('Could not download archive for %s', repo)
+        logger.error('Could not download archive for %s', repo)
         return
 
     for filename in archive.namelist():
@@ -315,7 +319,7 @@ def download_corpus(language, directory, quantity=1024):
     j = lambda *args: os.path.join(directory, *args)
 
     index = get_github_list(language, quantity)
-    logging.info('Found %d/%d results for %s', len(index), quantity, language)
+    logger.info('Found %d/%d results for %s', len(index), quantity, language)
 
     # Persist the index to a file.
     with open(j('index.json'), 'w') as f:

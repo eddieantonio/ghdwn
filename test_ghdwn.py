@@ -122,8 +122,12 @@ def test_download_corpus(monkeypatch, tmpdir):
     assert corpus_dir.join('eddieantonio', 'dev', 'setup.py').check(file=True)
     assert not corpus_dir.join('eddieantonio', 'dev', 'README.rst').check()
 
-    # Assert that none of the files here exist (but the directory can exist!).
-    # I may have gone overboard with the name here...
+    # Assert that none of the files in the root directory exist (but the
+    # directory can exist!).  I may have gone overboard with the name here...
     repo = 'syntax-errors-up-the-ying-yang'
     assert corpus_dir.join('eddieantonio', repo).check(dir=True)
-    assert len(corpus_dir.join('eddieantonio', repo).listdir()) == 0
+    assert len(corpus_dir.join('eddieantonio', repo).listdir()) == 1
+    # This file is nested, but it compiles just fine!
+    assert corpus_dir.join('eddieantonio', repo, 'working',
+                           '__init__.py').check(file=True)
+
