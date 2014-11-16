@@ -57,14 +57,27 @@ def test_authentication(monkeypatch):
 
     auth_token = 'fhqwhgads\n'
 
-    # Monkey-Patch open() to return specific file content.
-    original_open = open
+    # Err... Just ignore how needlessly complicated this is.
+    def monkeypath_on_path_match(mod, name):
+        original = getattr(mod, name)
 
+        def patch(function):
+            def patched(path, *args, **kwargs):
+                if path == os.path.expanduser('~/.ghtoken'):
+                    return function(path, *args, **kwargs)
+                return original(path, *args, **kwargs)
+            monkeypatch.setattr(mod, name, patched)
+        return patch
+
+    # Monkey-Patch exists() to say that the token exists.
+    @monkeypath_on_path_match(os.path, 'exists')
+    def intercept_exists(path, *args, **kwargs):
+        return True
+
+    # Monkey-Patch open() to return specific file content.
+    @monkeypath_on_path_match(__builtin__, 'open')
     def intercept_open(path, *args, **kwargs):
-        if path == os.path.expanduser('~/.ghtoken'):
-            return io.BytesIO(auth_token)
-        return original_open(file, *args, **kwargs)
-    monkeypatch.setattr(__builtin__, 'open', intercept_open)
+        return io.BytesIO(auth_token)
 
     # Enable HTTPretty and register the index path.
     httpretty.enable()
@@ -90,19 +103,14 @@ def test_authentication(monkeypatch):
 
     original_exists = os.path.exists
 
-    def intercept_exists(path, *args, **kwargs):
-        if path == os.path.expanduser('~/.ghtoken'):
-            return False
-        return original_exists(path, *args, **kwargs)
-    monkeypatch.setattr(os.path, 'exists', intercept_exists)
-
     # Now pretend that file DOES NOT exist!
+    @monkeypath_on_path_match(os.path, 'exists')
+    def intercept_exists_fails(path, *args, **kwargs):
+        return False
+
+    @monkeypath_on_path_match(__builtin__, 'open')
     def intercept_open_failure(path, *args, **kwargs):
-        assert False
-        if path == os.path.expanduser('~/.ghtoken'):
-            raise IOError('Could not find file!')
-        return original_open(file, *args, **kwargs)
-    monkeypatch.setattr(__builtin__, 'open', intercept_open_failure)
+        raise IOError('Could not find file!')
 
     # Issue the same request again:
     ghdwn.get_github_list('java')

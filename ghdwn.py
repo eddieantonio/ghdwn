@@ -220,7 +220,7 @@ def create_github_request(url):
     if os.path.exists(auth_token_path):
         with open(auth_token_path) as f:
             token = f.read().rstrip()
-        request.add_header('Authorization', 'token {}'.format(token))
+        request.add_header('Authorization', 'token {0}'.format(token))
 
     return request
 
