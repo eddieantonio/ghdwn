@@ -58,7 +58,7 @@ def test_authentication(monkeypatch):
     auth_token = 'fhqwhgads\n'
 
     # Err... Just ignore how needlessly complicated this is.
-    def monkeypath_on_path_match(mod, name):
+    def monkeypatch_on_path_match(mod, name):
         original = getattr(mod, name)
 
         def patch(function):
@@ -70,12 +70,12 @@ def test_authentication(monkeypatch):
         return patch
 
     # Monkey-Patch exists() to say that the token exists.
-    @monkeypath_on_path_match(os.path, 'exists')
+    @monkeypatch_on_path_match(os.path, 'exists')
     def intercept_exists(path, *args, **kwargs):
         return True
 
     # Monkey-Patch open() to return specific file content.
-    @monkeypath_on_path_match(__builtin__, 'open')
+    @monkeypatch_on_path_match(__builtin__, 'open')
     def intercept_open(path, *args, **kwargs):
         return io.BytesIO(auth_token)
 
@@ -104,11 +104,11 @@ def test_authentication(monkeypatch):
     original_exists = os.path.exists
 
     # Now pretend that file DOES NOT exist!
-    @monkeypath_on_path_match(os.path, 'exists')
+    @monkeypatch_on_path_match(os.path, 'exists')
     def intercept_exists_fails(path, *args, **kwargs):
         return False
 
-    @monkeypath_on_path_match(__builtin__, 'open')
+    @monkeypatch_on_path_match(__builtin__, 'open')
     def intercept_open_failure(path, *args, **kwargs):
         raise IOError('Could not find file!')
 
