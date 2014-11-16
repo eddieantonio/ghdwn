@@ -56,7 +56,7 @@ class GitHubSearchRequester(object):
         link_header = response.info().get('Link', '')
 
         # Set the new buffer's contents.
-        self.buffer = [tuple(repo['full_name'].split('/'))
+        self.buffer = [RepositoryInfo.from_json(repo)
                        for repo in payload['items']]
 
         self.next_url = parse_link_header(link_header).get('next', None)
@@ -85,25 +85,38 @@ class GitHubSearchRequester(object):
 
 
 class RepositoryInfo(object):
+    STANDARD_ATTRS = ('owner', 'name', 'default_branch')
 
     def __init__(self, owner, repo, default_branch='master'):
         self.owner = owner
-        self.repository = repo
+        self.name = repo
         self.default_branch = default_branch
 
     @property
     def archive_url(self):
-        return "{base}/{owner}/{repository}/archive/{release}.zip".format(
-            base=GITHUB_BASE, owner=self.owner, repository=self.repository,
-            release=self.default_branch)
+        return "{base}/{owner}/{name}/archive/{default_branch}.zip".format(
+            base=GITHUB_BASE, **vars(self))
 
     def __repr__(self):
-        args = ', '.join(repr(vars(self)[name]) for name in (
-            'owner', 'repository', 'default_branch'))
+        args = ', '.join(repr(getattr(self, name))
+                         for name in self.STANDARD_ATTRS)
         return 'RepositoryInfo({0:s})'.format(args)
 
     def __str__(self):
         return "{owner}/{repository}".format(**vars(self))
+
+    def __eq__(self, other):
+        if isinstance(other, tuple):
+            return self.__tuple_eq__(other)
+        return all(getattr(self, attr) == getattr(other, attr)
+                   for attr in self.STANDARD_ATTRS)
+
+    def __tuple_eq__(self, other):
+        return self.owner == other[0] and self.name == other[1]
+
+    def as_dict(self):
+        return dict((attr, getattr(self, attr))
+                for attr in self.STANDARD_ATTRS)
 
     @classmethod
     def from_json(cls, json):
@@ -234,8 +247,8 @@ def mkdirp(*dirs):
     return fullpath
 
 
-def download_repo_zip(owner, repo):
-    request = create_github_request(create_archive_url(owner, repo, 'master'))
+def download_repo_zip(repo):
+    request = create_github_request(repo.archive_url)
     try:
         response = urlopen(request)
     except HTTPError:
@@ -269,16 +282,16 @@ def maybe_write_file(directory, file_path, file_content):
     return True
 
 
-def download_repo(owner, repo, directory, language="python"):
+def download_repo(repo, directory, language="python"):
     """
     Downloads a repository and keeps only the files that validly compile.
     """
-    base_dir = mkdirp(directory, owner, repo)
+    base_dir = mkdirp(directory, repo.owner, repo.name)
 
-    archive = download_repo_zip(owner, repo)
+    archive = download_repo_zip(repo)
 
     if not archive:
-        logging.warning('Could not download archive for %s', repo)
+        logging.error('Could not download archive for %s', repo)
         return
 
     for filename in archive.namelist():
@@ -301,10 +314,10 @@ def download_corpus(language, directory, quantity=1024):
 
     # Persist the index to a file.
     with open(j('index.json'), 'w') as f:
-        json.dump(index, f)
+        json.dump([repo.as_dict() for repo in index], f)
 
-    for owner, repo in index:
-        download_repo(owner, repo, directory, language)
+    for repo in index:
+        download_repo(repo, directory, language)
 
 
 def usage():
