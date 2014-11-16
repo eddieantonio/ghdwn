@@ -116,7 +116,7 @@ class RepositoryInfo(object):
 
     def as_dict(self):
         return dict((attr, getattr(self, attr))
-                for attr in self.STANDARD_ATTRS)
+                    for attr in self.STANDARD_ATTRS)
 
     @classmethod
     def from_json(cls, json):

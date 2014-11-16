@@ -14,13 +14,13 @@ Usage
 -----
 ::
 
-    ghdwn {langauage} [quantity]
+    ghdwn {langauage} [directory [quantity]]
 
 For example::
 
-    ghdwn python 1024
+    ghdwn python corpus 1024
 
-Downloads the top 1024 Python projects.
+Downloads the top 1024 Python projects to `corpus/`.
 
 -------
 License
