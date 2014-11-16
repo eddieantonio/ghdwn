@@ -97,6 +97,10 @@ def test_download_corpus(monkeypatch, tmpdir):
     httpretty.register_uri(httpretty.GET, broken_url,
                            body=mock_data.broken_zip,
                            content_type='application/zip')
+    # This one is purposefully not found. Because.
+    httpretty.register_uri(httpretty.GET,
+                           ghdwn.create_archive_url('django', 'reinhardt'),
+                           status=404)
 
     # Download that entire corpus.
     ghdwn.download_corpus('python', 'corpus')

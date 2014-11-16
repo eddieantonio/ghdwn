@@ -805,6 +805,34 @@ abbrev_search_bodies = [
       "watchers": 7641,
       "default_branch": "master",
       "score": 1.0
+    },
+    {
+      "id": 20429945,
+      "name": "reinhardt",
+      "full_name": "django/reinhardt",
+      "owner": {
+        "login": "django",
+        "type": "Organization"
+      },
+      "private": false,
+      "html_url": "https://github.com/django/reinhardt",
+      "description": "Dev",
+      "fork": false,
+      "url": "https://api.github.com/repos/django/reinhardt",
+      "size": 29375,
+      "language": "Python",
+      "has_issues": true,
+      "has_downloads": true,
+      "has_wiki": true,
+      "has_pages": true,
+      "forks_count": 2265,
+      "mirror_url": null,
+      "open_issues_count": 12,
+      "forks": 2265,
+      "open_issues": 0,
+      "watchers": 7641,
+      "default_branch": "master",
+      "score": 1.0
     }
   ]
 }"""

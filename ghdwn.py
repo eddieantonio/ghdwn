@@ -6,13 +6,15 @@ library, because... uh...
 """
 
 import codecs
+import collections
+import io
 import itertools
 import json
 import os
 import re
 import sys
 import zipfile
-import io
+import logging
 
 # These are different in Python 3...
 try:
@@ -80,6 +82,19 @@ class GitHubSearchRequester(object):
 
     # For Python 3 compatibility:
     __next__ = next
+
+
+class RepositoryInfo(object):
+    def __init__(self, owner, repo, branch):
+        pass
+    @property
+    def archive_url(self):
+        pass
+
+
+#RepositoryInfo = collecions.namedtuple('RepositoryInfo',
+                                       #'owner repo branch'
+
 
 
 def get_github_list(language, quantity=1024):
@@ -193,10 +208,14 @@ def mkdirp(*dirs):
 
 def download_repo_zip(owner, repo):
     request = create_github_request(create_archive_url(owner, repo, 'master'))
-    response = urlopen(request)
+    try:
+        response = urlopen(request)
+    except HTTPError:
+        return None
 
     assert response.info()['Content-Type'] == 'application/zip'
-    # Need to create a "real" file-like object...
+
+    # Need to create a "real" file-like object for ZipFile...
     file_like = io.BytesIO(response.read())
 
     return zipfile.ZipFile(file_like, allowZip64=True)
@@ -229,6 +248,11 @@ def download_repo(owner, repo, directory, language="python"):
     base_dir = mkdirp(directory, owner, repo)
 
     archive = download_repo_zip(owner, repo)
+
+    if not archive:
+        logging.warning('Could not download archive for %s', repo)
+        return
+
     for filename in archive.namelist():
         content = archive.open(filename).read()
         maybe_write_file(base_dir, filename, content)
