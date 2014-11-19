@@ -2,8 +2,15 @@ language: python
 python:
   - "2.6"
   - "2.7"
-  # For now, Python 3 is not supported...
-# command to install dependencies
+  - "3.3"
+  - "pypy"
+
 install: "pip install -r dev_requirements.txt"
-# command to run tests
 script: "py.test"
+
+# For now, Python 3 and pypy support is experimental.
+matrix:
+  allow_failures:
+    - python: "3.3"
+    - python: "pypy"
+
