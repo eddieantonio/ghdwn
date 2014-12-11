@@ -238,12 +238,26 @@ def syntax_ok(contents):
     >>> syntax_ok(r"AWESOME_CHAR_ESCAPE = '\x0G'")
     False
     """
-    try:
-        compile(contents, '<unknown>', 'exec')
-        # why does compile throw so many generic exceptions...? >.<
-    except (SyntaxError, TypeError, ValueError):
-        return False
-    return True
+
+    # I have the sneaking suspicion that compile() puts stuff in a cache that
+    # is NOT garbage collected! Since I consider this a pretty serious memory
+    # leak, I implemented this batshit crazy technique. Basically, let the
+    # operating system be our garbage collector.
+
+    pid = os.fork()
+    if pid == 0:
+        # Child process. Let it crash!!!
+        try:
+            compile(contents, '<unknown>', 'exec')
+        except:
+            # Use _exit so it doesn't raise a SystemExit exception.
+            os._exit(-1)
+        else:
+            os._exit(0)
+    else:
+        # Parent process.
+        child_pid, status = os.waitpid(pid, 0)
+        return status == 0
 
 
 def mkdirp(*dirs):
